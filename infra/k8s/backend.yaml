@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pickup-game-api-deployment
+  labels:
+    app: pickup-game-api-deployment
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: pickup-game
+  template:
+    metadata:
+      labels:
+        app: pickup-game
+    spec:
+      containers:
+      - name: pickup-game-api
+        image: pickupgameacr.azurecr.io/pickup-game:v1
+        ports:
+        - containerPort: 80
+        env:
+        - name: ASPNETCORE_URLS
+          value: http://*:5902
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: "2"
+          requests:
+            memory: 526Mi
+            cpu: "1"
+      imagePullSecrets:
+      - name: pickupgame-az-acr
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pickup-game-api-service
+spec:
+  selector:
+    app: pickup-game
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 5902
+      #nodePort: 30036
