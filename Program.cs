@@ -16,6 +16,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
+builder.Services.AddAuthorization();
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -33,6 +34,8 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
+
+//app.UseAuthentication();
 
 app.UseAuthorization();
 
@@ -57,7 +60,7 @@ app.Use(async (httpContext, next) => {
           await httpContext.Response.WriteAsJsonAsync(new {Message = "Invalid bearer token provided"});
       }    
    }
-   
+
    await next();
 });
 
