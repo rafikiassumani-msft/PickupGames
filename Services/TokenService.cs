@@ -39,8 +39,8 @@ public class TokenService : ITokenService {
     private SecurityTokenDescriptor GetSecurityTokenDescriptor(User user) {
 
         return new SecurityTokenDescriptor {
-            Issuer = _configuration["JwtSettings: Issuer"],
-            Audience = _configuration["JwtSettings: Audience"],
+            Issuer = _configuration["JwtSettings:Issuer"],
+            Audience = _configuration["JwtSettings:Audience"],
             Subject = new ClaimsIdentity( new[] { new Claim ("userId", user.UserId.ToString())}),
             Expires = DateTime.UtcNow.AddHours(2), 
             IssuedAt = DateTime.UtcNow,
@@ -69,7 +69,7 @@ public class TokenService : ITokenService {
 
     private byte[] GetKey() {
         var ascii = Encoding.ASCII;
-        return ascii.GetBytes("jwksecretkey2022");
+        return ascii.GetBytes(_configuration["JwtSettings:Key"]);
     }
 }
 

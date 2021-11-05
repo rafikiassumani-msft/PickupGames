@@ -4,11 +4,13 @@ using PickUpGames.Models;
 using PickUpGames.Services;
 using PickUpGames.Models.Mappers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSqlite<PickupGamesDBContext>("Data Source=pickupGamesDB.db;");
@@ -16,6 +18,23 @@ builder.Services.AddHealthChecks();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
+
+
+builder.Services.AddAuthentication(options => 
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+
+}).AddJwtBearer(jwtOptions => {
+    jwtOptions.TokenValidationParameters = new TokenValidationParameters 
+    {
+        ValidateAudience = true, 
+        ValidateIssuer = true,
+        ValidateLifetime = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]))
+    };
+});
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddSwaggerGen(c =>
@@ -32,37 +51,36 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "PickUpGames v1"));
 }
 
-
 app.UseHttpsRedirection();
 
-//app.UseAuthentication();
+app.UseAuthentication();
 
 app.UseAuthorization();
 
-app.Use(async (httpContext, next) => {
+// app.Use(async (httpContext, next) => {
 
-   var jwtToken = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ")[1];
+//    var jwtToken = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ")[1];
 
-   if (jwtToken is null)  {
-       httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-       await httpContext.Response.WriteAsJsonAsync(new {Message = "Missing Bearer token"});
-   } 
+//    if (jwtToken is null)  {
+//        httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+//        await httpContext.Response.WriteAsJsonAsync(new {Message = "Missing Bearer token"});
+//    } 
   
-   if (jwtToken is not null) {
+//    if (jwtToken is not null) {
 
-      var tokenService = httpContext.RequestServices.GetService<ITokenService>();
-      var claimsPrincipal  = tokenService?.ValidateToken(jwtToken);
+//       var tokenService = httpContext.RequestServices.GetService<ITokenService>();
+//       var claimsPrincipal  = tokenService?.ValidateToken(jwtToken);
 
-      if (claimsPrincipal is not null) {
-          httpContext.User = claimsPrincipal;
-      } else {
-          httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-          await httpContext.Response.WriteAsJsonAsync(new {Message = "Invalid bearer token provided"});
-      }    
-   }
+//       if (claimsPrincipal is not null) {
+//           httpContext.User = claimsPrincipal;
+//       } else {
+//           httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+//           await httpContext.Response.WriteAsJsonAsync(new {Message = "Invalid bearer token provided"});
+//       }    
+//    }
 
-   await next();
-});
+//    await next();
+// });
 
 app.MapHealthChecks("/health");
 
@@ -85,7 +103,7 @@ app.MapPost("/users/authenticate", [AllowAnonymous] (UserAuth userAuth, IUserSer
   .WithTags("Auth");
 
 //Users
-app.MapGet("/users", async (PickupGamesDBContext _dbContext) =>
+app.MapGet("/users", [AllowAnonymous] async (PickupGamesDBContext _dbContext) =>
 {
     var users = await _dbContext.Users.ToListAsync<User>();
     return Results.Json(UserMapper.MapUsers(users));
@@ -94,7 +112,7 @@ app.MapGet("/users", async (PickupGamesDBContext _dbContext) =>
   .WithTags("Users")
   .WithName("GetAllUsers");
 
-app.MapGet("/users/{id}", async (int id, PickupGamesDBContext _dbContext) =>
+app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext _dbContext) =>
 {
     var user = await _dbContext.FindAsync<User>(id);
     if (user == null)
@@ -109,7 +127,7 @@ app.MapGet("/users/{id}", async (int id, PickupGamesDBContext _dbContext) =>
   .WithTags("Users")
   .WithName("GetUser");
 
-app.MapPost("/users",  (UserDto userDto, IUserService userService) =>
+app.MapPost("/users",  [AllowAnonymous] (UserDto userDto, IUserService userService) =>
 {    
      var registeredUser = userService.RegisterUser(userDto);
 

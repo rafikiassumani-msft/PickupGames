@@ -1,5 +1,6 @@
 ﻿#nullable disable
 
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace PickUpGames.Models;
@@ -24,7 +25,8 @@ namespace PickUpGames.Models;
         public string LastName {  get; set; }
         public string Email {  get; set; }
 
-        [JsonIgnore]
+        [Required]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public string Password {get; set;}
         public string DateOfBirth { get; set; }
         public string ProfileImageUrl { get; set; }
