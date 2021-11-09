@@ -20,12 +20,13 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
 
 
-builder.Services.AddAuthentication(options => 
+builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 
-}).AddJwtBearer(jwtOptions => {
+}).AddJwtBearer(jwtOptions =>
+{
     jwtOptions.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateAudience = true,
@@ -61,17 +62,18 @@ app.UseAuthorization();
 
 app.MapHealthChecks("/health");
 
-app.MapPost("/users/authenticate", [AllowAnonymous] (UserAuth userAuth, IUserService userService, ITokenService tokenService) => 
+app.MapPost("/users/authenticate", [AllowAnonymous] (UserAuth userAuth, IUserService userService, ITokenService tokenService) =>
 {
-   
-     var (isAuthenticated, user) = userService.Authenticate(userAuth);
 
-     if(!isAuthenticated || user == null) {
-         return Results.BadRequest(new {Message = "Your email address or password is incorrect"});
-     }
+    var (isAuthenticated, user) = userService.Authenticate(userAuth);
 
-     var jwtToken = tokenService.GenerateToken(user);
-     return Results.Json( new {AccessToken = jwtToken, tokenType = "Bearer" });
+    if (!isAuthenticated || user == null)
+    {
+        return Results.BadRequest(new { Message = "Your email address or password is incorrect" });
+    }
+
+    var jwtToken = tokenService.GenerateToken(user);
+    return Results.Json(new { AccessToken = jwtToken, tokenType = "Bearer" });
 })
   .Accepts<UserAuth>("application/json")
   .Produces<JwtTokenDetails>(StatusCodes.Status200OK, "application/json")
@@ -89,7 +91,7 @@ app.MapGet("/users", [AllowAnonymous] async (PickupGamesDBContext _dbContext) =>
   .WithTags("Users")
   .WithName("GetAllUsers");
 
-app.MapGet("/users/{id}", [Authorize] async(int id, PickupGamesDBContext _dbContext) =>
+app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext _dbContext) =>
 {
     var user = await _dbContext.FindAsync<User>(id);
     if (user == null)
@@ -104,11 +106,11 @@ app.MapGet("/users/{id}", [Authorize] async(int id, PickupGamesDBContext _dbCont
   .WithTags("Users")
   .WithName("GetUser");
 
-app.MapPost("/users",  [AllowAnonymous] (UserDto userDto, IUserService userService) =>
-{    
-     var registeredUser = userService.RegisterUser(userDto);
+app.MapPost("/users", [AllowAnonymous] (UserDto userDto, IUserService userService) =>
+{
+   var registeredUser = userService.RegisterUser(userDto);
 
-     return Results.Created($"/users/{registeredUser.UserId}", registeredUser);
+   return Results.Created($"/users/{registeredUser.UserId}", registeredUser);
 
 }).Accepts<UserDto>("application/json")
   .Produces<UserDto>(StatusCodes.Status200OK, "application/json")
@@ -117,10 +119,10 @@ app.MapPost("/users",  [AllowAnonymous] (UserDto userDto, IUserService userServi
 
 app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext dbContext) =>
 {
-    if(user == null) return Results.BadRequest();
+    if (user == null) return Results.BadRequest();
 
     var userToUpdate = await dbContext.FindAsync<User>(id);
-    if(userToUpdate == null) return Results.NotFound();
+    if (userToUpdate == null) return Results.NotFound();
 
     userToUpdate.FirstName = user.FirstName;
     userToUpdate.LastName = user.LastName;
@@ -141,7 +143,7 @@ app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
 
     if (user == null)
     {
-        return Results.NotFound(new NotFoundDetails { Message = "User not found"});
+        return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
 
     dbContext.Remove<User>(user);
@@ -171,7 +173,7 @@ app.MapGet("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
     var searchedEvent = await dbContext.FindAsync<Event>(id);
     if (searchedEvent == null)
     {
-        return Results.NotFound(new NotFoundDetails { Message = "Event not found"});
+        return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
 
     return Results.Json(searchedEvent);
@@ -210,8 +212,8 @@ app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext d
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
 
-    var eventOwner  = await dbContext.FindAsync<User>(eventDto.UserId);
-    if(eventOwner == null)
+    var eventOwner = await dbContext.FindAsync<User>(eventDto.UserId);
+    if (eventOwner == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
@@ -261,13 +263,13 @@ app.MapDelete("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 app.MapPost("/participants", async (Participant participant, PickupGamesDBContext dbContext) =>
 {
     var user = await dbContext.Users.FindAsync(participant.UserId);
-    if(user == null)
+    if (user == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
 
     var existingEvent = await dbContext.Events.FindAsync(participant.EventId);
-    if(existingEvent == null)
+    if (existingEvent == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
