@@ -26,10 +26,12 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 
 }).AddJwtBearer(jwtOptions => {
-    jwtOptions.TokenValidationParameters = new TokenValidationParameters 
+    jwtOptions.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateAudience = true, 
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
         ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidateLifetime = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]))
     };
@@ -56,31 +58,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 
 app.UseAuthorization();
-
-// app.Use(async (httpContext, next) => {
-
-//    var jwtToken = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ")[1];
-
-//    if (jwtToken is null)  {
-//        httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-//        await httpContext.Response.WriteAsJsonAsync(new {Message = "Missing Bearer token"});
-//    } 
-  
-//    if (jwtToken is not null) {
-
-//       var tokenService = httpContext.RequestServices.GetService<ITokenService>();
-//       var claimsPrincipal  = tokenService?.ValidateToken(jwtToken);
-
-//       if (claimsPrincipal is not null) {
-//           httpContext.User = claimsPrincipal;
-//       } else {
-//           httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-//           await httpContext.Response.WriteAsJsonAsync(new {Message = "Invalid bearer token provided"});
-//       }    
-//    }
-
-//    await next();
-// });
 
 app.MapHealthChecks("/health");
 
@@ -112,7 +89,7 @@ app.MapGet("/users", [AllowAnonymous] async (PickupGamesDBContext _dbContext) =>
   .WithTags("Users")
   .WithName("GetAllUsers");
 
-app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext _dbContext) =>
+app.MapGet("/users/{id}", [Authorize] async(int id, PickupGamesDBContext _dbContext) =>
 {
     var user = await _dbContext.FindAsync<User>(id);
     if (user == null)
@@ -131,18 +108,18 @@ app.MapPost("/users",  [AllowAnonymous] (UserDto userDto, IUserService userServi
 {    
      var registeredUser = userService.RegisterUser(userDto);
 
-     return Results.CreatedAtRoute("/users/{id}", new { id = registeredUser.UserId}, registeredUser);
+     return Results.Created($"/users/{registeredUser.UserId}", registeredUser);
 
 }).Accepts<UserDto>("application/json")
   .Produces<UserDto>(StatusCodes.Status200OK, "application/json")
   .WithTags("Users")
   .WithName("CreateUser");
 
-app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext _dbContext) =>
+app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext dbContext) =>
 {
     if(user == null) return Results.BadRequest();
 
-    var userToUpdate = await _dbContext.FindAsync<User>(id);
+    var userToUpdate = await dbContext.FindAsync<User>(id);
     if(userToUpdate == null) return Results.NotFound();
 
     userToUpdate.FirstName = user.FirstName;
@@ -151,24 +128,24 @@ app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext _dbCont
     userToUpdate.ProfileImageUrl = user.ProfileImageUrl;
     userToUpdate.LastUpdatedAt = DateTime.Now;
 
-    await _dbContext.SaveChangesAsync();
+    await dbContext.SaveChangesAsync();
     return Results.NoContent();
 
 }).Accepts<UserDto>("application/json")
   .WithTags("Users")
   .WithName("UpdateUser"); ;
 
-app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext _dbContext) =>
+app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
-    var user = await _dbContext.FindAsync<User>(id);
+    var user = await dbContext.FindAsync<User>(id);
 
     if (user == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found"});
     }
 
-    _dbContext.Remove<User>(user);
-    await _dbContext.SaveChangesAsync();
+    dbContext.Remove<User>(user);
+    await dbContext.SaveChangesAsync();
 
     return Results.NoContent();
 
@@ -178,9 +155,9 @@ app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext _dbContext) =>
   .WithName("DeleteUser"); ;
 
 //Events
-app.MapGet("/events", async (PickupGamesDBContext _dbContext) =>
+app.MapGet("/events", async (PickupGamesDBContext dbContext) =>
 {
-    var events = await _dbContext.Events.ToListAsync<Event>();
+    var events = await dbContext.Events.ToListAsync<Event>();
 
     return Results.Json(events);
 
@@ -189,9 +166,9 @@ app.MapGet("/events", async (PickupGamesDBContext _dbContext) =>
 .WithTags("Events")
 .WithName("GetAllEvents");
 
-app.MapGet("/events/{id}", async (int id, PickupGamesDBContext _dbContext) =>
+app.MapGet("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
-    var searchedEvent = await _dbContext.FindAsync<Event>(id);
+    var searchedEvent = await dbContext.FindAsync<Event>(id);
     if (searchedEvent == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event not found"});
@@ -204,18 +181,18 @@ app.MapGet("/events/{id}", async (int id, PickupGamesDBContext _dbContext) =>
   .WithTags("Events")
   .WithName("GetEvent");
 
-app.MapPost("/events", async (Event eventDto, PickupGamesDBContext _dbContext) =>
+app.MapPost("/events", async (Event eventDto, PickupGamesDBContext dbContext) =>
 {
-    var eventOwner = await _dbContext.FindAsync<User>(eventDto.UserId);
+    var eventOwner = await dbContext.FindAsync<User>(eventDto.UserId);
     if (eventOwner == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
 
-    _dbContext.Add<Event>(eventDto);
-    await _dbContext.SaveChangesAsync();
+    dbContext.Add<Event>(eventDto);
+    await dbContext.SaveChangesAsync();
 
-    return Results.CreatedAtRoute("events/{id}", new { id = eventDto.EventId }, eventDto);
+    return Results.Created($"events/{eventDto.EventId }", eventDto);
 
 }).Accepts<Event>("application/json")
   .Produces<Event>(StatusCodes.Status200OK, "application/json")
@@ -223,17 +200,17 @@ app.MapPost("/events", async (Event eventDto, PickupGamesDBContext _dbContext) =
   .WithTags("Events")
   .WithName("CreateEvent");
 
-app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext _dbContext) =>
+app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext dbContext) =>
 {
     if (eventDto == null) return Results.BadRequest();
 
-    var eventToUpdate = await _dbContext.FindAsync<Event>(id);
+    var eventToUpdate = await dbContext.FindAsync<Event>(id);
     if (eventToUpdate == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
 
-    var eventOwner  = await _dbContext.FindAsync<User>(eventDto.UserId);
+    var eventOwner  = await dbContext.FindAsync<User>(eventDto.UserId);
     if(eventOwner == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
@@ -252,7 +229,7 @@ app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext _
     eventToUpdate.UserId = eventOwner.UserId;
     eventToUpdate.LastUpdatedAt = DateTime.Now;
 
-    await _dbContext.SaveChangesAsync();
+    await dbContext.SaveChangesAsync();
     return Results.NoContent();
 
 }).Accepts<Event>("application/json")
@@ -260,17 +237,17 @@ app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext _
   .WithTags("Events")
   .WithName("UpdateEvent");
 
-app.MapDelete("/events/{id}", async (int id, PickupGamesDBContext _dbContext) =>
+app.MapDelete("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
-    var searchedEvent = await _dbContext.FindAsync<Event>(id);
+    var searchedEvent = await dbContext.FindAsync<Event>(id);
 
     if (searchedEvent == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
 
-    _dbContext.Remove<Event>(searchedEvent);
-    await _dbContext.SaveChangesAsync();
+    dbContext.Remove<Event>(searchedEvent);
+    await dbContext.SaveChangesAsync();
 
     return Results.NoContent();
 
@@ -281,24 +258,24 @@ app.MapDelete("/events/{id}", async (int id, PickupGamesDBContext _dbContext) =>
 
 
 //Participants
-app.MapPost("/participants", async (Participant participant, PickupGamesDBContext _dbContext) =>
+app.MapPost("/participants", async (Participant participant, PickupGamesDBContext dbContext) =>
 {
-    var user = await _dbContext.Users.FindAsync(participant.UserId);
+    var user = await dbContext.Users.FindAsync(participant.UserId);
     if(user == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
 
-    var existingEvent = await _dbContext.Events.FindAsync(participant.EventId);
+    var existingEvent = await dbContext.Events.FindAsync(participant.EventId);
     if(existingEvent == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
 
-    _dbContext.Add<Participant>(participant);
-    await _dbContext.SaveChangesAsync();
+    dbContext.Add<Participant>(participant);
+    await dbContext.SaveChangesAsync();
 
-    return Results.CreatedAtRoute("participants/{id}", new { id = participant.ParticipantId }, participant);
+    return Results.Created($"participants/{participant.ParticipantId}", participant);
 
 }).Accepts<Participant>("application/json")
   .Produces<Participant>(StatusCodes.Status200OK, "application/json")
@@ -306,11 +283,11 @@ app.MapPost("/participants", async (Participant participant, PickupGamesDBContex
   .WithTags("Participants")
   .WithName("GetAllParticipants");
 
-app.MapPut("/participants/{id}", async (int id, Participant participant, PickupGamesDBContext _dbContext) =>
+app.MapPut("/participants/{id}", async (int id, Participant participant, PickupGamesDBContext dbContext) =>
 {
     if (participant == null) return Results.BadRequest();
 
-    var participantToUpdate = await _dbContext.FindAsync<Participant>(id);
+    var participantToUpdate = await dbContext.FindAsync<Participant>(id);
     if (participantToUpdate == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event participant not found" });
@@ -322,7 +299,7 @@ app.MapPut("/participants/{id}", async (int id, Participant participant, PickupG
     participantToUpdate.Status = participant.Status;
     participantToUpdate.LastUpdatedAt = DateTime.Now;
 
-    await _dbContext.SaveChangesAsync();
+    await dbContext.SaveChangesAsync();
     return Results.NoContent();
 
 }).Accepts<Participant>("application/json")
@@ -330,16 +307,16 @@ app.MapPut("/participants/{id}", async (int id, Participant participant, PickupG
   .WithTags("Participants")
   .WithName("UpdateParticipant");
 
-app.MapDelete("/participants/{id}", async (int id, PickupGamesDBContext _dbContext) =>
+app.MapDelete("/participants/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
-    var participant = await _dbContext.FindAsync<Participant>(id);
+    var participant = await dbContext.FindAsync<Participant>(id);
     if (participant == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event participant not found" });
     }
 
-    _dbContext.Remove<Participant>(participant);
-    await _dbContext.SaveChangesAsync();
+    dbContext.Remove<Participant>(participant);
+    await dbContext.SaveChangesAsync();
 
     return Results.NoContent();
 

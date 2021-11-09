@@ -21,13 +21,13 @@ public class TokenService : ITokenService {
 
     public string GenerateToken(User user) {
 
-        var jwtSecurityTokenHandler = _jwtHandlerFactory.createInstance();
+        var jwtSecurityTokenHandler = _jwtHandlerFactory.CreateInstance();
         var jwtToken = jwtSecurityTokenHandler.CreateToken(GetSecurityTokenDescriptor(user));
 
         return jwtSecurityTokenHandler.WriteToken(jwtToken);
     }
 
-    private IDictionary<string, object> GetClaims(User user) {
+    private static IDictionary<string, object> GetClaims(User user) {
         var Claims = new Dictionary<string, object>() {
             {"firstName", user.FirstName},
             {"lastName", user.LastName},
@@ -42,7 +42,7 @@ public class TokenService : ITokenService {
             Issuer = _configuration["JwtSettings:Issuer"],
             Audience = _configuration["JwtSettings:Audience"],
             Subject = new ClaimsIdentity( new[] { new Claim ("userId", user.UserId.ToString())}),
-            Expires = DateTime.UtcNow.AddHours(2), 
+            Expires = DateTime.UtcNow.AddMinutes(5),
             IssuedAt = DateTime.UtcNow,
             Claims = GetClaims(user), 
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(GetKey()),  SecurityAlgorithms.HmacSha256Signature)
@@ -52,12 +52,12 @@ public class TokenService : ITokenService {
     public ClaimsPrincipal? ValidateToken(string jwtToken) {
 
         try {
-              return _jwtHandlerFactory.createInstance().ValidateToken(jwtToken, new TokenValidationParameters
+              return _jwtHandlerFactory.CreateInstance().ValidateToken(jwtToken, new TokenValidationParameters
                     {
                         ValidateAudience = true, 
                         ValidateIssuer = true,
                         ValidateLifetime = true,
-                        ClockSkew = TimeSpan.Zero,//Might not be needed
+                        ClockSkew = TimeSpan.Zero,
                         IssuerSigningKey = new SymmetricSecurityKey(GetKey())
                     }, out var validatedJwtToken);
         } catch (Exception ex) {
@@ -80,7 +80,7 @@ public interface ITokenService {
 }
 
 public class  JwtSecurityTokenHandlerFactory {
-    public JwtSecurityTokenHandler createInstance() {
+    public JwtSecurityTokenHandler CreateInstance() {
         return new JwtSecurityTokenHandler();
     }
 }
