@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,24 +20,27 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
 
+//Azure issued jwt
+builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+// My custom jwt
+// builder.Services.AddAuthentication(options =>
+// {
+//     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 
-}).AddJwtBearer(jwtOptions =>
-{
-    jwtOptions.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateAudience = true,
-        ValidAudience = builder.Configuration["JwtSettings:Audience"],
-        ValidateIssuer = true,
-        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-        ValidateLifetime = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]))
-    };
-});
+// }).AddJwtBearer(jwtOptions =>
+// {
+//     jwtOptions.TokenValidationParameters = new TokenValidationParameters
+//     {
+//         ValidateAudience = true,
+//         ValidAudience = builder.Configuration["JwtSettings:Audience"],
+//         ValidateIssuer = true,
+//         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+//         ValidateLifetime = true,
+//         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]))
+//     };
+// });
 
 builder.Services.AddAuthorization();
 
