@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Identity.Web;
+using PickUpGames.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,27 +21,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
 
-//Azure issued jwt
-builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
-
-// My custom jwt
-// builder.Services.AddAuthentication(options =>
-// {
-//     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-
-// }).AddJwtBearer(jwtOptions =>
-// {
-//     jwtOptions.TokenValidationParameters = new TokenValidationParameters
-//     {
-//         ValidateAudience = true,
-//         ValidAudience = builder.Configuration["JwtSettings:Audience"],
-//         ValidateIssuer = true,
-//         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-//         ValidateLifetime = true,
-//         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]))
-//     };
-// });
+//My custom jwt - Note. without passing the scheme name, authz fails
+builder.Services.AddAuthentication("CustomJwt").AddScheme<CustomJwtAuthenticationOptions, CustomJwtAuthenticationHandler>("CustomJwt", null);
 
 builder.Services.AddAuthorization(options =>
 {
@@ -48,7 +30,7 @@ builder.Services.AddAuthorization(options =>
     //However, not great for checking claims for single endpoints. Users may need this for Minimal
     // Add defaults claims name for jwt
     // Can we reconcile the ClaimsConstants ?
-    options.AddPolicy("ApiReadOnly", policy => policy.RequireClaim(ClaimConstants.Scope, "api.fullAccess"));
+    //options.AddPolicy("ApiReadOnly", policy => policy.RequireClaim(ClaimConstants.Scope, "api.fullAccess"));
 });
 
 builder.Services.AddSwaggerGen(c =>
@@ -100,7 +82,7 @@ app.MapGet("/users", async (HttpContext context, PickupGamesDBContext _dbContext
     return Results.Json(UserMapper.MapUsers(users));
 
 })
-  .RequireAuthorization("ApiReadOnly")
+  .RequireAuthorization()
   .Produces<List<UserDto>>(StatusCodes.Status200OK, "application/json")
   .WithTags("Users")
   .WithName("GetAllUsers");

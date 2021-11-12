@@ -54,8 +54,10 @@ public class TokenService : ITokenService {
         try {
               return _jwtHandlerFactory.CreateInstance().ValidateToken(jwtToken, new TokenValidationParameters
                     {
-                        ValidateAudience = true, 
+                        ValidateAudience = true,
+                        ValidAudience = _configuration["JwtSettings:Audience"],
                         ValidateIssuer = true,
+                        ValidIssuer = _configuration["JwtSettings:Issuer"],
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.Zero,
                         IssuerSigningKey = new SymmetricSecurityKey(GetKey())
