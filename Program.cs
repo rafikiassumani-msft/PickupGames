@@ -42,7 +42,14 @@ builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration)
 //     };
 // });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    //Good way for creating auth policies (collection of requirements to be met) for a grouped of endpoints
+    //However, not great for checking claims for single endpoints. Users may need this for Minimal
+    // Add defaults claims name for jwt
+    // Can we reconcile the ClaimsConstants ?
+    options.AddPolicy("ApiReadOnly", policy => policy.RequireClaim(ClaimConstants.Scope, "api.fullAccess"));
+});
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -86,12 +93,15 @@ app.MapPost("/users/authenticate", [AllowAnonymous] (UserAuth userAuth, IUserSer
   .WithTags("Auth");
 
 //Users
-app.MapGet("/users", [AllowAnonymous] async (PickupGamesDBContext _dbContext) =>
+app.MapGet("/users", async (HttpContext context, PickupGamesDBContext _dbContext) =>
 {
+    //var ClaimsPrinciple = context.User;
     var users = await _dbContext.Users.ToListAsync<User>();
     return Results.Json(UserMapper.MapUsers(users));
 
-}).Produces<List<UserDto>>(StatusCodes.Status200OK, "application/json")
+})
+  .RequireAuthorization("ApiReadOnly")
+  .Produces<List<UserDto>>(StatusCodes.Status200OK, "application/json")
   .WithTags("Users")
   .WithName("GetAllUsers");
 
@@ -105,7 +115,8 @@ app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext _dbCon
 
     return Results.Json(UserMapper.MapUser(user));
 
-}).Produces<UserDto>(StatusCodes.Status200OK, "application/json")
+})
+  .Produces<UserDto>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Users")
   .WithName("GetUser");
