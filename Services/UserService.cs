@@ -13,14 +13,14 @@ public class UserService : IUserService {
 
     public UserDto RegisterUser(UserDto userDto) {
 
-        var user = mapUserData(userDto);
+        var user = MapUserData(userDto);
         _context.Add<User> (user);
         _context.SaveChanges();
         userDto.UserId = user.UserId;
          return userDto;
     }
 
-    private string PasswordDigest(string password) {
+    private static string PasswordDigest(string password) {
 
         var enhancedHashPassword = BCrypt.Net.BCrypt.EnhancedHashPassword(password);
         return enhancedHashPassword;
@@ -39,7 +39,7 @@ public class UserService : IUserService {
         return (isVerified, user);
     }
 
-    public User mapUserData(UserDto userDto) {
+    public User MapUserData(UserDto userDto) {
 
         return new User {
             FirstName = userDto.FirstName,
