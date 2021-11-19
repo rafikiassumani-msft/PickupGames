@@ -23,31 +23,8 @@ builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
 //Azure issued jwt
 builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
 
-// My custom jwt
-// builder.Services.AddAuthentication(options =>
-// {
-//     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-
-// }).AddJwtBearer(jwtOptions =>
-// {
-//     jwtOptions.TokenValidationParameters = new TokenValidationParameters
-//     {
-//         ValidateAudience = true,
-//         ValidAudience = builder.Configuration["JwtSettings:Audience"],
-//         ValidateIssuer = true,
-//         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-//         ValidateLifetime = true,
-//         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]))
-//     };
-// });
-
 builder.Services.AddAuthorization(options =>
 {
-    //Good way for creating auth policies (collection of requirements to be met) for a grouped of endpoints
-    //However, not great for checking claims for single endpoints. Users may need this for Minimal
-    // Add defaults claims name for jwt
-    // Can we reconcile the ClaimsConstants ?
     options.AddPolicy("ApiReadOnly", policy => policy.RequireClaim(ClaimConstants.Scope, "api.fullAccess"));
 });
 
