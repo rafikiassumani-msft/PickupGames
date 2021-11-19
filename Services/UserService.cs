@@ -20,7 +20,7 @@ public class UserService : IUserService {
          return userDto;
     }
 
-    private string PasswordDigest(string password) {
+    private static string PasswordDigest(string password) {
 
         var enhancedHashPassword = BCrypt.Net.BCrypt.EnhancedHashPassword(password);
         return enhancedHashPassword;
