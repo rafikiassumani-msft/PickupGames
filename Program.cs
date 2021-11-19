@@ -25,18 +25,8 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 
-}).AddJwtBearer(jwtOptions =>
-{
-    jwtOptions.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateAudience = true,
-        ValidAudience = builder.Configuration["JwtSettings:Audience"],
-        ValidateIssuer = true,
-        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-        ValidateLifetime = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]))
-    };
-});
+}).AddJwtBearer(jwtOptions => SetTokenValidationParams(builder, jwtOptions));
+
 
 builder.Services.AddAuthorization();
 
@@ -106,7 +96,7 @@ app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext _dbCon
   .WithTags("Users")
   .WithName("GetUser");
 
-app.MapPost("/users", [AllowAnonymous] (UserDto userDto, IUserService userService) =>
+app.MapPost("/users", (UserDto userDto, IUserService userService) =>
 {
    var registeredUser = userService.RegisterUser(userDto);
 
@@ -115,7 +105,8 @@ app.MapPost("/users", [AllowAnonymous] (UserDto userDto, IUserService userServic
 }).Accepts<UserDto>("application/json")
   .Produces<UserDto>(StatusCodes.Status200OK, "application/json")
   .WithTags("Users")
-  .WithName("CreateUser");
+  .WithName("CreateUser")
+  .RequireAuthorization();
 
 app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext dbContext) =>
 {
@@ -135,7 +126,8 @@ app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext dbConte
 
 }).Accepts<UserDto>("application/json")
   .WithTags("Users")
-  .WithName("UpdateUser"); ;
+  .WithName("UpdateUser")
+  .RequireAuthorization();
 
 app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
@@ -154,7 +146,8 @@ app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
 }).Accepts<UserDto>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Users")
-  .WithName("DeleteUser"); ;
+  .WithName("DeleteUser")
+  .RequireAuthorization();
 
 //Events
 app.MapGet("/events", async (PickupGamesDBContext dbContext) =>
@@ -166,7 +159,8 @@ app.MapGet("/events", async (PickupGamesDBContext dbContext) =>
 })
 .Produces<List<Event>>(StatusCodes.Status200OK, "application/json")
 .WithTags("Events")
-.WithName("GetAllEvents");
+.WithName("GetAllEvents")
+.RequireAuthorization();
 
 app.MapGet("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
@@ -181,7 +175,8 @@ app.MapGet("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 }).Produces<Event>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Events")
-  .WithName("GetEvent");
+  .WithName("GetEvent")
+  .RequireAuthorization();
 
 app.MapPost("/events", async (Event eventDto, PickupGamesDBContext dbContext) =>
 {
@@ -200,7 +195,8 @@ app.MapPost("/events", async (Event eventDto, PickupGamesDBContext dbContext) =>
   .Produces<Event>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Events")
-  .WithName("CreateEvent");
+  .WithName("CreateEvent")
+  .RequireAuthorization();
 
 app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext dbContext) =>
 {
@@ -237,7 +233,8 @@ app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext d
 }).Accepts<Event>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Events")
-  .WithName("UpdateEvent");
+  .WithName("UpdateEvent")
+  .RequireAuthorization();
 
 app.MapDelete("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
@@ -256,7 +253,8 @@ app.MapDelete("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 }).Accepts<Event>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Events")
-  .WithName("DeleteEvent");
+  .WithName("DeleteEvent")
+  .RequireAuthorization();
 
 
 //Participants
@@ -283,7 +281,8 @@ app.MapPost("/participants", async (Participant participant, PickupGamesDBContex
   .Produces<Participant>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Participants")
-  .WithName("GetAllParticipants");
+  .WithName("GetAllParticipants")
+  .RequireAuthorization();
 
 app.MapPut("/participants/{id}", async (int id, Participant participant, PickupGamesDBContext dbContext) =>
 {
@@ -307,7 +306,8 @@ app.MapPut("/participants/{id}", async (int id, Participant participant, PickupG
 }).Accepts<Participant>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Participants")
-  .WithName("UpdateParticipant");
+  .WithName("UpdateParticipant")
+  .RequireAuthorization();
 
 app.MapDelete("/participants/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
@@ -325,8 +325,20 @@ app.MapDelete("/participants/{id}", async (int id, PickupGamesDBContext dbContex
 }).Accepts<Participant>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Participants")
-  .WithName("DeleteParticipant"); ;
-
-app.MapControllers();
+  .WithName("DeleteParticipant")
+  .RequireAuthorization();
 
 app.Run();
+
+static void SetTokenValidationParams(WebApplicationBuilder builder, JwtBearerOptions options)
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidateLifetime = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]))
+    };
+}
