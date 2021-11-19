@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using PickUpGames.Services;
 using System.Text;
 using System.Text.Encodings.Web;
+using System;
 
 namespace PickUpGames.Auth;
 public class CustomJwtAuthenticationOptions: AuthenticationSchemeOptions
@@ -56,7 +57,7 @@ public class CustomJwtAuthenticationHandler : AuthenticationHandler<CustomJwtAut
         //Need to use the property object from AuthenticateResult.Fail to properly set headers and error messages. 
         Response.Headers.Add("WWW-Authenticate", "Bearer error=Invalid token");
         byte[] result = Encoding.ASCII.GetBytes("Invalid bearer token");
-        await Response.Body.WriteAsync(result, 0, result.Length);
+        await Response.Body.WriteAsync(result);
 
         await base.HandleChallengeAsync(properties);
     }
