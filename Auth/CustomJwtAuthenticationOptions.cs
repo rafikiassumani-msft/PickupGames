@@ -3,7 +3,6 @@ using Microsoft.Extensions.Options;
 using PickUpGames.Services;
 using System.Text;
 using System.Text.Encodings.Web;
-using System;
 
 namespace PickUpGames.Auth;
 public class CustomJwtAuthenticationOptions: AuthenticationSchemeOptions
