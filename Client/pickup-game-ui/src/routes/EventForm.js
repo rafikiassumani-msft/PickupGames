@@ -149,8 +149,40 @@ const EventForm = () => {
                 </FormControl>
 
                 <FormControl fullWidth>
-                 <TextField name="location" id="outlined-basic" label="Event Location" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.location || ''} />
+                 <TextField required name="streetAddress" id="outlined-basic" label="Street Address" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.streetAddress || ''} />
                 </FormControl>
+
+                <FormControl fullWidth>
+                 <TextField name="streetAddress2" id="outlined-basic" label="Street Address 2" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.streetAddress2 || ''} />
+                </FormControl>
+
+                <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                     <FormControl fullWidth>
+                        <TextField name="city" id="outlined-basic" label="City" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.city || ''} />
+                     </FormControl>
+                    </Grid>
+
+                    <Grid item xs={6}>
+                     <FormControl fullWidth>
+                        <TextField name="state" id="outlined-basic" label="State/Province" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.province || ''} />
+                     </FormControl>
+                    </Grid>
+                </Grid>
+
+                <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                     <FormControl fullWidth>
+                        <TextField name="postalCode" id="outlined-basic" label="Zip code/Postal Code" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.postalCode || ''} />
+                     </FormControl>
+                    </Grid>
+
+                    <Grid item xs={6}>
+                     <FormControl fullWidth>
+                        <TextField name="country" id="outlined-basic" label="Country" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.country || ''} />
+                     </FormControl>
+                    </Grid>
+                </Grid>
 
                 <FormControl fullWidth margin="normal">
                  <InputLabel id="event-privacy-select-label">Event Privacy</InputLabel>
