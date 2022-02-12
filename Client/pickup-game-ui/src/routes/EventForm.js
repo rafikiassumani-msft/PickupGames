@@ -84,7 +84,7 @@ const EventForm = () => {
                 </FormControl>
 
                 <FormControl fullWidth margin="normal">
-                 <InputLabel id="event-type-select-label">Event Type</InputLabel>
+                 <InputLabel required id="event-type-select-label">Event Type</InputLabel>
                  <Select
                     name="eventType"
                     labelId="event-type-select-label"
@@ -119,7 +119,7 @@ const EventForm = () => {
                       <Grid container spacing={2}>
                         <Grid item xs={4}> 
                             <DatePicker
-    x                           label="Start Date"
+                               label="Start Date"
                                 margin="normal"
                                 onChange={handleStartDateChange}
                                 value={formData.startDate || null}
@@ -159,13 +159,13 @@ const EventForm = () => {
                 <Grid container spacing={2}>
                     <Grid item xs={6}>
                      <FormControl fullWidth>
-                        <TextField name="city" id="outlined-basic" label="City" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.city || ''} />
+                        <TextField required name="city" id="outlined-basic" label="City" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.city || ''} />
                      </FormControl>
                     </Grid>
 
                     <Grid item xs={6}>
                      <FormControl fullWidth>
-                        <TextField name="state" id="outlined-basic" label="State/Province" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.province || ''} />
+                        <TextField required name="state" id="outlined-basic" label="State/Province" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.province || ''} />
                      </FormControl>
                     </Grid>
                 </Grid>
@@ -179,13 +179,13 @@ const EventForm = () => {
 
                     <Grid item xs={6}>
                      <FormControl fullWidth>
-                        <TextField name="country" id="outlined-basic" label="Country" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.country || ''} />
+                        <TextField required name="country" id="outlined-basic" label="Country" variant="outlined"  margin="normal" onChange={handleChange} value ={formData.country || ''} />
                      </FormControl>
                     </Grid>
                 </Grid>
 
                 <FormControl fullWidth margin="normal">
-                 <InputLabel id="event-privacy-select-label">Event Privacy</InputLabel>
+                 <InputLabel required id="event-privacy-select-label">Event Privacy</InputLabel>
                  <Select
                     name="eventPrivacy"
                     labelId="event-privacy-select-label"
@@ -202,7 +202,7 @@ const EventForm = () => {
             
 
                <FormControl fullWidth margin="normal">
-                 <InputLabel id="event-status-select-label">Event Status</InputLabel>
+                 <InputLabel required id="event-status-select-label">Event Status</InputLabel>
                  <Select
                     name="eventStatus"
                     labelId="event-status-select-label"
