@@ -19,7 +19,7 @@ namespace PickUpGames.Models;
         public IEnumerable<Event> Events {  get; set; }
     }
 
-    public class UserDto  {
+    public class UserDTO  {
         public int UserId {  get; set; }
         public string FirstName {  get; set; }
         public string LastName {  get; set; }
@@ -31,6 +31,7 @@ namespace PickUpGames.Models;
         public string DateOfBirth { get; set; }
         public string ProfileImageUrl { get; set; }
          public DateTime CreatedAt {  get; set; } = DateTime.Now;
+         public IEnumerable<EventDTO> Events {get; set;}
     }
 
 #nullable restore

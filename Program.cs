@@ -4,22 +4,42 @@ using PickUpGames.Models;
 using PickUpGames.Services;
 using PickUpGames.Models.Mappers;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.Identity.Web;
 using PickUpGames.Auth;
+using PickUpGames.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using System.Text.Json.Serialization;
+using Models.Mappers;
+using PickUpGames.Middlewares;
+using Microsoft.AspNetCore.Http.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSqlite<PickupGamesDBContext>("Data Source=pickupGamesDB.db;");
 builder.Services.AddHealthChecks();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
+builder.Services.AddResponseCaching();
+builder.Services.AddControllers();
+
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+});
+
+builder.Services.AddCors();
+
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options => {
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; 
+    options.JsonSerializerOptions.WriteIndented = true;
+});
+
+builder.Services.Configure<JsonOptions>(options => {
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; 
+    options.SerializerOptions.WriteIndented = true;
+});
 
 //My custom jwt - Note. without passing the scheme name, authz fails
 builder.Services.AddAuthentication("CustomJwt").AddScheme<CustomJwtAuthenticationOptions, CustomJwtAuthenticationHandler>("CustomJwt", null);
@@ -46,6 +66,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "PickUpGames v1"));
 }
+app.MapControllers();
 
 app.UseHttpsRedirection();
 
@@ -53,7 +74,16 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
+app.UseCors( opts => opts.AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
+
+//app.UseEtagResponseCaching();
+
 app.MapHealthChecks("/health");
+
+app.MapHub<GameEventHub>("/eventMessage");
+
 
 app.MapPost("/users/authenticate", [AllowAnonymous] (UserAuth userAuth, IUserService userService, ITokenService tokenService) =>
 {
@@ -75,21 +105,21 @@ app.MapPost("/users/authenticate", [AllowAnonymous] (UserAuth userAuth, IUserSer
   .WithTags("Auth");
 
 //Users
-app.MapGet("/users", async (HttpContext context, PickupGamesDBContext _dbContext) =>
+app.MapGet("/users", async (HttpContext context, PickupGamesDBContext dbContext) =>
 {
     //var ClaimsPrinciple = context.User;
-    var users = await _dbContext.Users.ToListAsync<User>();
+    //var users = await dbContext.Users.ToListAsync<User>();
+    var users = await dbContext.Users.Include(u => u.Events).ToListAsync();
     return Results.Json(UserMapper.MapUsers(users));
 
 })
-  .RequireAuthorization()
-  .Produces<List<UserDto>>(StatusCodes.Status200OK, "application/json")
+  .Produces<List<UserDTO>>(StatusCodes.Status200OK, "application/json")
   .WithTags("Users")
   .WithName("GetAllUsers");
 
-app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext _dbContext) =>
+app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext dbContext) =>
 {
-    var user = await _dbContext.FindAsync<User>(id);
+    var user = await dbContext.Users.Include(u => u.Events).FirstOrDefaultAsync(u => u.UserId == id);
     if (user == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
@@ -98,20 +128,20 @@ app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext _dbCon
     return Results.Json(UserMapper.MapUser(user));
 
 }).RequireAuthorization()
-  .Produces<UserDto>(StatusCodes.Status200OK, "application/json")
+  .Produces<UserDTO>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Users")
   .WithName("GetUser");
 
-app.MapPost("/users", [AllowAnonymous] (UserDto userDto, IUserService userService) =>
+app.MapPost("/users", (UserDTO userDto, IUserService userService) =>
 {
    var registeredUser = userService.RegisterUser(userDto);
 
    return Results.Created($"/users/{registeredUser.UserId}", registeredUser);
 
 }).RequireAuthorization()
-  .Accepts<UserDto>("application/json")
-  .Produces<UserDto>(StatusCodes.Status200OK, "application/json")
+  .Accepts<UserDTO>("application/json")
+  .Produces<UserDTO>(StatusCodes.Status200OK, "application/json")
   .WithTags("Users")
   .WithName("CreateUser");
 
@@ -132,7 +162,7 @@ app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext dbConte
     return Results.NoContent();
 
 }).RequireAuthorization()
-  .Accepts<UserDto>("application/json")
+  .Accepts<UserDTO>("application/json")
   .WithTags("Users")
   .WithName("UpdateUser"); ;
 
@@ -151,7 +181,6 @@ app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
     return Results.NoContent();
 
 }).RequireAuthorization()
-  .Accepts<UserDto>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Users")
   .WithName("DeleteUser"); ;
@@ -159,19 +188,23 @@ app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
 //Events
 app.MapGet("/events", async (PickupGamesDBContext dbContext) =>
 {
-    var events = await dbContext.Events.ToListAsync<Event>();
+    var allEvents = await dbContext.Events.Include(ev => ev.User).ToListAsync();
+    var mappedEvents = EventMapper.MapEvents(allEvents);
 
-    return Results.Json(events);
-
+    return Results.Json(mappedEvents);
+  
 })
 .RequireAuthorization()
-.Produces<List<Event>>(StatusCodes.Status200OK, "application/json")
+.Produces<List<EventDTO>>(StatusCodes.Status200OK, "application/json")
 .WithTags("Events")
 .WithName("GetAllEvents");
 
 app.MapGet("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
-    var searchedEvent = await dbContext.FindAsync<Event>(id);
+    var searchedEvent = await dbContext.Events
+                                       .Include(ev => ev.User)
+                                       .Include(ev => ev.Participants)
+                                       .FirstOrDefaultAsync(ev => ev.EventId == id);
     if (searchedEvent == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
@@ -181,27 +214,33 @@ app.MapGet("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 
 })
   .RequireAuthorization()
-  .Produces<Event>(StatusCodes.Status200OK, "application/json")
+  .Produces<EventDTO>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Events")
   .WithName("GetEvent");
 
-app.MapPost("/events", async (Event eventDto, PickupGamesDBContext dbContext) =>
+app.MapPost("/events", async (EventRequestDTO eventDto, PickupGamesDBContext dbContext, IHubContext<GameEventHub> hubContext) =>
 {
-    User? eventOwner = await dbContext.FindAsync<User>(eventDto.UserId);
+    User? eventOwner = await dbContext.FindAsync<User>(eventDto.OwnerId);
     if (eventOwner == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
 
-    dbContext.Add<Event>(eventDto);
+    dbContext.Add<Event>(EventMapper.MapEventRequestDTO(eventDto));
     await dbContext.SaveChangesAsync();
 
-    return Results.Created($"events/{eventDto.EventId }", eventDto);
+    var allEvents = await dbContext.Events.ToListAsync<Event>();
+    //Notify clients of new events
+    var mappedEvents = EventMapper.MapEvents(allEvents);
+    
+    await hubContext.Clients.All.SendAsync("ReceiveEventMessages", mappedEvents);
+
+    return Results.Ok(EventMapper.MapEventRequestDTO(eventDto));
 
 }).RequireAuthorization()
-  .Accepts<Event>("application/json")
-  .Produces<Event>(StatusCodes.Status200OK, "application/json")
+  .Accepts<EventRequestDTO>("application/json")
+  .Produces<EventDTO>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Events")
   .WithName("CreateEvent");
@@ -239,7 +278,7 @@ app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext d
     return Results.NoContent();
 
 }).RequireAuthorization()
-  .Accepts<Event>("application/json")
+  .Accepts<EventDTO>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Events")
   .WithName("UpdateEvent");
@@ -259,7 +298,6 @@ app.MapDelete("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
     return Results.NoContent();
 
 }).RequireAuthorization()
-  .Accepts<Event>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Events")
   .WithName("DeleteEvent");
@@ -283,11 +321,11 @@ app.MapPost("/participants", async (Participant participant, PickupGamesDBContex
     dbContext.Add<Participant>(participant);
     await dbContext.SaveChangesAsync();
 
-    return Results.Created($"participants/{participant.ParticipantId}", participant);
+    return Results.Created($"participants/{participant.ParticipantId}", ParticipantMapper.MapParticipant(participant));
 
 }).RequireAuthorization()
-  .Accepts<Participant>("application/json")
-  .Produces<Participant>(StatusCodes.Status200OK, "application/json")
+  .Accepts<ParticipantDTO>("application/json")
+  .Produces<ParticipantDTO>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Participants")
   .WithName("GetAllParticipants");
@@ -312,7 +350,7 @@ app.MapPut("/participants/{id}", async (int id, Participant participant, PickupG
     return Results.NoContent();
 
 }).RequireAuthorization()
-  .Accepts<Participant>("application/json")
+  .Accepts<ParticipantDTO>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Participants")
   .WithName("UpdateParticipant");
@@ -331,7 +369,6 @@ app.MapDelete("/participants/{id}", async (int id, PickupGamesDBContext dbContex
     return Results.NoContent();
 
 }).RequireAuthorization()
-  .Accepts<Participant>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Participants")
   .WithName("DeleteParticipant"); ;

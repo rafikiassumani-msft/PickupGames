@@ -31,7 +31,10 @@ public class TokenService : ITokenService {
         var Claims = new Dictionary<string, object>() {
             {"firstName", user.FirstName},
             {"lastName", user.LastName},
-            {"email", user.Email}
+            {"email", user.Email},
+            {"can:create", "event"},
+            {"can:delete", "event"},
+            {"can:modifiy", "event"}
         };
         return Claims;
     }
@@ -42,7 +45,7 @@ public class TokenService : ITokenService {
             Issuer = _configuration["JwtSettings:Issuer"],
             Audience = _configuration["JwtSettings:Audience"],
             Subject = new ClaimsIdentity( new[] { new Claim ("userId", user.UserId.ToString())}),
-            Expires = DateTime.UtcNow.AddMinutes(5),
+            Expires = DateTime.UtcNow.AddHours(3),
             IssuedAt = DateTime.UtcNow,
             Claims = GetClaims(user), 
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(GetKey()),  SecurityAlgorithms.HmacSha256Signature)

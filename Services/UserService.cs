@@ -11,7 +11,7 @@ public class UserService : IUserService {
         _context = dBContext;
     }
 
-    public UserDto RegisterUser(UserDto userDto) {
+    public UserDTO RegisterUser(UserDTO userDto) {
 
         var user = MapUserData(userDto);
         _context.Add<User> (user);
@@ -39,7 +39,7 @@ public class UserService : IUserService {
         return (isVerified, user);
     }
 
-    public User MapUserData(UserDto userDto) {
+    public User MapUserData(UserDTO userDto) {
 
         return new User {
             FirstName = userDto.FirstName,
@@ -57,7 +57,7 @@ public class UserService : IUserService {
 
 public interface IUserService {
 
-   public UserDto RegisterUser(UserDto userDto);
+   public UserDTO RegisterUser(UserDTO userDto);
 
    public (bool, User?) Authenticate(UserAuth userAuth);
 

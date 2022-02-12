@@ -55,6 +55,7 @@ public class CustomJwtAuthenticationHandler : AuthenticationHandler<CustomJwtAut
     {
         //Need to use the property object from AuthenticateResult.Fail to properly set headers and error messages. 
         Response.Headers.Add("WWW-Authenticate", "Bearer error=Invalid token");
+        Response.StatusCode = StatusCodes.Status401Unauthorized;
         byte[] result = Encoding.ASCII.GetBytes("Invalid bearer token");
         await Response.Body.WriteAsync(result);
 
