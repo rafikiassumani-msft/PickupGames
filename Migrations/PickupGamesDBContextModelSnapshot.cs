@@ -15,12 +15,44 @@ namespace PickUpGames.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.0-rc.1.21452.10");
+            modelBuilder.HasAnnotation("ProductVersion", "6.0.0");
+
+            modelBuilder.Entity("PickUpGames.Models.Address", b =>
+                {
+                    b.Property<int>("AddressId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("City")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Country")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostalCode")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StreetAddress")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StreetAddress2")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("AddressId");
+
+                    b.ToTable("Addresses");
+                });
 
             modelBuilder.Entity("PickUpGames.Models.Event", b =>
                 {
                     b.Property<int>("EventId")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AddressId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
@@ -44,10 +76,7 @@ namespace PickUpGames.Migrations
                     b.Property<int>("EventType")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("LastUpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Location")
+                    b.Property<DateTime?>("LastUpdatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("MaxNumberOfParticipants")
@@ -66,6 +95,8 @@ namespace PickUpGames.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("EventId");
+
+                    b.HasIndex("AddressId");
 
                     b.HasIndex("UserId");
 
@@ -139,11 +170,19 @@ namespace PickUpGames.Migrations
 
             modelBuilder.Entity("PickUpGames.Models.Event", b =>
                 {
+                    b.HasOne("PickUpGames.Models.Address", "Address")
+                        .WithMany()
+                        .HasForeignKey("AddressId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("PickUpGames.Models.User", "User")
                         .WithMany("Events")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Address");
 
                     b.Navigation("User");
                 });

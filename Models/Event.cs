@@ -13,7 +13,8 @@ public class Event
     public string EndDate { get; set; }
     public string StartTime { get; set; }
     public string EndTime { get; set; }
-    public Address Location { get; set; }
+    public int AddressId {get; set;}
+    public Address Address { get; set; }
     public int MaxNumberOfParticipants { get; set; }
     public EventPrivacy EventPrivacy { get; set; }
     public EventStatus EventStatus { get; set; }
@@ -43,16 +44,6 @@ public class EventDTO
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? LastUpdatedAt { get; set; }
 }
-
-public class Address {
-    public string StreetAddress {get; set;}
-    public string StreetAddress2 {get; set;}
-    public string City {get; set;}
-    public string State {get; set;}
-    public string PostalCode {get; set;}
-    public string Country {get; set;}
-}
-
 
 public class EventRequestDTO 
 {

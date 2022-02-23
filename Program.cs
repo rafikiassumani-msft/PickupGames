@@ -9,7 +9,6 @@ using PickUpGames.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using System.Text.Json.Serialization;
 using Models.Mappers;
-using PickUpGames.Middlewares;
 using Microsoft.AspNetCore.Http.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,13 +58,9 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "PickUpGames v1"));
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "PickUpGames v1"));
-}
 app.MapControllers();
 
 app.UseHttpsRedirection();
@@ -117,7 +112,7 @@ app.MapGet("/users", async (HttpContext context, PickupGamesDBContext dbContext)
   .WithTags("Users")
   .WithName("GetAllUsers");
 
-app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext dbContext) =>
+app.MapGet("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
 {
     var user = await dbContext.Users.Include(u => u.Events).FirstOrDefaultAsync(u => u.UserId == id);
     if (user == null)
@@ -133,13 +128,13 @@ app.MapGet("/users/{id}", [Authorize] async (int id, PickupGamesDBContext dbCont
   .WithTags("Users")
   .WithName("GetUser");
 
-app.MapPost("/users", (UserDTO userDto, IUserService userService) =>
+app.MapPost("/users", [AllowAnonymous] (UserDTO userDto, IUserService userService) =>
 {
    var registeredUser = userService.RegisterUser(userDto);
 
    return Results.Created($"/users/{registeredUser.UserId}", registeredUser);
 
-}).RequireAuthorization()
+})
   .Accepts<UserDTO>("application/json")
   .Produces<UserDTO>(StatusCodes.Status200OK, "application/json")
   .WithTags("Users")
@@ -186,7 +181,7 @@ app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
   .WithName("DeleteUser"); ;
 
 //Events
-app.MapGet("/events", async (PickupGamesDBContext dbContext) =>
+app.MapGet("/events",  [AllowAnonymous] async (PickupGamesDBContext dbContext) =>
 {
     var allEvents = await dbContext.Events.Include(ev => ev.User).ToListAsync();
     var mappedEvents = EventMapper.MapEvents(allEvents);
@@ -194,7 +189,6 @@ app.MapGet("/events", async (PickupGamesDBContext dbContext) =>
     return Results.Json(mappedEvents);
   
 })
-.RequireAuthorization()
 .Produces<List<EventDTO>>(StatusCodes.Status200OK, "application/json")
 .WithTags("Events")
 .WithName("GetAllEvents");
@@ -230,11 +224,10 @@ app.MapPost("/events", async (EventRequestDTO eventDto, PickupGamesDBContext dbC
     dbContext.Add<Event>(EventMapper.MapEventRequestDTO(eventDto));
     await dbContext.SaveChangesAsync();
 
-    var allEvents = await dbContext.Events.ToListAsync<Event>();
+    //var allEvents = await dbContext.Events.ToListAsync<Event>();
     //Notify clients of new events
-    var mappedEvents = EventMapper.MapEvents(allEvents);
-    
-    await hubContext.Clients.All.SendAsync("ReceiveEventMessages", mappedEvents);
+    //var mappedEvents = EventMapper.MapEvents(allEvents);
+    //await hubContext.Clients.All.SendAsync("ReceiveEventMessages", mappedEvents);
 
     return Results.Ok(EventMapper.MapEventRequestDTO(eventDto));
 
@@ -262,7 +255,7 @@ app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext d
     }
 
     eventToUpdate.Title = eventDto.Title;
-    eventToUpdate.Location = eventDto.Location;
+    eventToUpdate.Address = eventDto.Address;
     eventToUpdate.Description = eventDto.Description;
     eventToUpdate.EventStatus = eventDto.EventStatus;
     eventToUpdate.StartDate = eventDto.StartDate;

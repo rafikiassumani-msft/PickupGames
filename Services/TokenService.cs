@@ -13,7 +13,10 @@ public class TokenService : ITokenService {
     private readonly JwtSecurityTokenHandlerFactory _jwtHandlerFactory;
     private readonly ILogger<ITokenService> _logger;
     
-    public TokenService(IConfiguration configuration, JwtSecurityTokenHandlerFactory jwtSecurityTokenHandler, ILogger<ITokenService> logger) {
+    public TokenService(IConfiguration configuration, 
+                        JwtSecurityTokenHandlerFactory jwtSecurityTokenHandler, 
+                        ILogger<ITokenService> logger) {
+
         _configuration = configuration;
         _jwtHandlerFactory = jwtSecurityTokenHandler;
         _logger = logger;

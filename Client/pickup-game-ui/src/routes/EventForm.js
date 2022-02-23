@@ -51,11 +51,15 @@ const EventForm = () => {
         fetch("https://localhost:7287/events", {
             method: "post",
             body: JSON.stringify({...formData, ownerId: 1})
+            
         }).then(response => {
+
             if(!response.ok) {
               throw new Error(`HTTP Post - Failed to create event - Http status: ${response.status}`)
             }
+
             return response.json();
+
         }).catch(err => {
             console.log(err)
         })
@@ -217,8 +221,6 @@ const EventForm = () => {
                </FormControl>
 
                <Button type="submit" variant="contained"> Save Event Data</Button>
-
-
            </Box>
            </Grid>
           </Container>
