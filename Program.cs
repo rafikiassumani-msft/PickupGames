@@ -22,6 +22,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
 builder.Services.AddResponseCaching();
 builder.Services.AddControllers();
+builder.Services.AddTransient<IStartupFilter, DatabaseMigrationFilter>();
 
 builder.Services.AddSignalR(options =>
 {
@@ -58,6 +59,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "PickUpGames v1"));
 
@@ -221,7 +223,9 @@ app.MapPost("/events", async (EventRequestDTO eventDto, PickupGamesDBContext dbC
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
 
-    dbContext.Add<Event>(EventMapper.MapEventRequestDTO(eventDto));
+    var sportEvent = EventMapper.MapEventRequestDTO(eventDto);
+    sportEvent.User = eventOwner;
+    dbContext.Add<Event>(sportEvent);
     await dbContext.SaveChangesAsync();
 
     //var allEvents = await dbContext.Events.ToListAsync<Event>();
@@ -229,7 +233,7 @@ app.MapPost("/events", async (EventRequestDTO eventDto, PickupGamesDBContext dbC
     //var mappedEvents = EventMapper.MapEvents(allEvents);
     //await hubContext.Clients.All.SendAsync("ReceiveEventMessages", mappedEvents);
 
-    return Results.Ok(EventMapper.MapEventRequestDTO(eventDto));
+    return Results.Ok(sportEvent);
 
 }).RequireAuthorization()
   .Accepts<EventRequestDTO>("application/json")

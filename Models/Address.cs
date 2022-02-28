@@ -8,4 +8,6 @@ public class Address {
     public string? State {get; set;}
     public string? PostalCode {get; set;}
     public string? Country {get; set;}
+    public int EventId {get; set;}
+    public Event? Event {get; set;}
 }

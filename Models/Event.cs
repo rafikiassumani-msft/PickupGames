@@ -13,7 +13,6 @@ public class Event
     public string EndDate { get; set; }
     public string StartTime { get; set; }
     public string EndTime { get; set; }
-    public int AddressId {get; set;}
     public Address Address { get; set; }
     public int MaxNumberOfParticipants { get; set; }
     public EventPrivacy EventPrivacy { get; set; }
@@ -57,6 +56,7 @@ public class EventRequestDTO
     public int EventStatus { get; set; }
     public int EventType { get; set; }
     public int OwnerId { get; set; }
+    public UserRequestDTO user {get; set;}
 }
 
 

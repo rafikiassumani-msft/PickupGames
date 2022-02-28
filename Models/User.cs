@@ -32,6 +32,16 @@ namespace PickUpGames.Models;
         public string ProfileImageUrl { get; set; }
          public DateTime CreatedAt {  get; set; } = DateTime.Now;
          public IEnumerable<EventDTO> Events {get; set;}
+       }
+
+        public class UserRequestDTO  {
+        public int UserId {  get; set; }
+        public string FirstName {  get; set; }
+        public string LastName {  get; set; }
+        public string Email {  get; set; }
+        public string Password {get; set;}
+        public string DateOfBirth { get; set; }
+        public string ProfileImageUrl { get; set; }
     }
 
 #nullable restore
