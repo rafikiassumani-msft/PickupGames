@@ -11,13 +11,13 @@ public class UserService : IUserService {
         _context = dBContext;
     }
 
-    public UserDTO RegisterUser(UserDTO userDto) {
+    public UserDTO RegisterUser(UserRequestDTO userDto) {
 
         var user = MapUserData(userDto);
         _context.Add<User> (user);
         _context.SaveChanges();
-        userDto.UserId = user.UserId;
-         return userDto;
+    
+         return MapUserToUserDTO(user);
     }
 
     private static string PasswordDigest(string password) {
@@ -39,7 +39,7 @@ public class UserService : IUserService {
         return (isVerified, user);
     }
 
-    public User MapUserData(UserDTO userDto) {
+    public User MapUserData(UserRequestDTO userDto) {
 
         return new User {
             FirstName = userDto.FirstName,
@@ -48,8 +48,22 @@ public class UserService : IUserService {
             PasswordHash = PasswordDigest(userDto.Password),
             DateOfBirth = userDto.DateOfBirth,
             ProfileImageUrl = userDto.ProfileImageUrl, // Need to change this to upload to azure blob and store azure blog url
-            CreatedAt =  userDto.CreatedAt,
+            CreatedAt =  DateTime.Now,
             LastUpdatedAt = null
+        };
+    }
+
+     public UserDTO MapUserToUserDTO(User user) {
+
+        return new UserDTO {
+            UserId = user.UserId,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email,
+            DateOfBirth = user.DateOfBirth,
+            ProfileImageUrl = user.ProfileImageUrl, // Need to change this to upload to azure blob and store azure blog url
+            CreatedAt =  DateTime.Now,
+            LastUpdatedAt = user.LastUpdatedAt
         };
     }
 
@@ -57,7 +71,7 @@ public class UserService : IUserService {
 
 public interface IUserService {
 
-   public UserDTO RegisterUser(UserDTO userDto);
+   public UserDTO RegisterUser(UserRequestDTO userDto);
 
    public (bool, User?) Authenticate(UserAuth userAuth);
 

@@ -11,6 +11,7 @@ namespace PickUpGames.Models;
         public string FirstName {  get; set; }
         public string LastName {  get; set; }
         public string Email {  get; set; }
+        [JsonIgnore]
         public string PasswordHash {get; set;}
         public string DateOfBirth { get; set; }
         public string ProfileImageUrl {  get; set; }
@@ -24,22 +25,24 @@ namespace PickUpGames.Models;
         public string FirstName {  get; set; }
         public string LastName {  get; set; }
         public string Email {  get; set; }
-
-        [Required]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public string Password {get; set;}
         public string DateOfBirth { get; set; }
         public string ProfileImageUrl { get; set; }
-         public DateTime CreatedAt {  get; set; } = DateTime.Now;
+         public DateTime CreatedAt {  get; set; }
+         public Nullable<DateTime> LastUpdatedAt {get; set;}
          public IEnumerable<EventDTO> Events {get; set;}
        }
 
         public class UserRequestDTO  {
         public int UserId {  get; set; }
+        [Required]
         public string FirstName {  get; set; }
+        [Required]
         public string LastName {  get; set; }
+        [Required]
         public string Email {  get; set; }
+        [Required]
         public string Password {get; set;}
+        [Required]
         public string DateOfBirth { get; set; }
         public string ProfileImageUrl { get; set; }
     }

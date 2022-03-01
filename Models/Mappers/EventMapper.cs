@@ -13,7 +13,7 @@ public static class EventMapper {
 
        if (allEvents is not null) {
             foreach(var sportEvent in allEvents) {
-                var mappedEvent = MapEvent(sportEvent);
+                var mappedEvent = MapEventWithOwner(sportEvent);
                 mappedEvents.Add(mappedEvent);
             }
        }
@@ -29,6 +29,7 @@ public static class EventMapper {
             Title = sportEvent.Title,
             Description = sportEvent.Description,
             StartDate = sportEvent.StartDate,
+            StartTime = sportEvent.StartTime,
             Location = sportEvent.Address,
             MaxNumberOfParticipants = sportEvent.MaxNumberOfParticipants,
             EventPrivacy = sportEvent.EventPrivacy.ToString(),
@@ -47,6 +48,7 @@ public static class EventMapper {
             Title = sportEvent.Title,
             Description = sportEvent.Description,
             StartDate = sportEvent.StartDate,
+            StartTime = sportEvent.StartTime,
             Address = sportEvent.Location,
             MaxNumberOfParticipants = sportEvent.MaxNumberOfParticipants,
             EventPrivacy = (EventPrivacy) sportEvent.EventPrivacy,
@@ -62,6 +64,7 @@ public static class EventMapper {
             Title = sportEvent.Title,
             Description = sportEvent.Description,
             StartDate = sportEvent.StartDate,
+            StartTime = sportEvent.StartTime,
             Location = sportEvent.Address,
             MaxNumberOfParticipants = sportEvent.MaxNumberOfParticipants,
             EventPrivacy = sportEvent.EventPrivacy.ToString(),

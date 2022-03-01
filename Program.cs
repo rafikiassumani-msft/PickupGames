@@ -22,7 +22,11 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<JwtSecurityTokenHandlerFactory>();
 builder.Services.AddResponseCaching();
 builder.Services.AddControllers();
-builder.Services.AddTransient<IStartupFilter, DatabaseMigrationFilter>();
+
+if (builder.Environment.IsProduction()) {
+
+   builder.Services.AddTransient<IStartupFilter, DatabaseMigrationFilter>();
+}
 
 builder.Services.AddSignalR(options =>
 {
@@ -39,6 +43,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options => {
 builder.Services.Configure<JsonOptions>(options => {
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; 
     options.SerializerOptions.WriteIndented = true;
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
 //My custom jwt - Note. without passing the scheme name, authz fails
@@ -130,7 +135,7 @@ app.MapGet("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
   .WithTags("Users")
   .WithName("GetUser");
 
-app.MapPost("/users", [AllowAnonymous] (UserDTO userDto, IUserService userService) =>
+app.MapPost("/users", [AllowAnonymous] (UserRequestDTO userDto, IUserService userService) =>
 {
    var registeredUser = userService.RegisterUser(userDto);
 
@@ -206,7 +211,7 @@ app.MapGet("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
 
-    return Results.Json(searchedEvent);
+    return Results.Ok(EventMapper.MapEventWithOwner(searchedEvent));
 
 })
   .RequireAuthorization()
@@ -233,7 +238,7 @@ app.MapPost("/events", async (EventRequestDTO eventDto, PickupGamesDBContext dbC
     //var mappedEvents = EventMapper.MapEvents(allEvents);
     //await hubContext.Clients.All.SendAsync("ReceiveEventMessages", mappedEvents);
 
-    return Results.Ok(sportEvent);
+    return Results.Ok(EventMapper.MapEventWithOwner(sportEvent));
 
 }).RequireAuthorization()
   .Accepts<EventRequestDTO>("application/json")
