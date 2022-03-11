@@ -30,10 +30,9 @@ namespace PickUpGames.Models;
          public DateTime CreatedAt {  get; set; }
          public Nullable<DateTime> LastUpdatedAt {get; set;}
          public IEnumerable<EventDTO> Events {get; set;}
-       }
+    }
 
-        public class UserRequestDTO  {
-        public int UserId {  get; set; }
+    public class UserRequestDTO  {
         [Required]
         public string FirstName {  get; set; }
         [Required]

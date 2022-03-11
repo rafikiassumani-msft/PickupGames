@@ -11,16 +11,16 @@ const CorsComponent = () => {
 
 
     const postDataJson = async () => {
-        var data = new URLSearchParams();
-        data.append('name', 'test@gmail.com');
-        return await fetch("https://localhost:61748/api/Values/test", {
-            method: "POST",
+        return await fetch("https://localhost:7287/users/9", {
+            method: "PUT",
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                name: "Raf",
-                id: 1222
+                firstName: "Raf",
+                lastName: "Doe",
+                password: "microsoft123",
+                email: "rafdoe@gmail.com"
             })
         })
     }

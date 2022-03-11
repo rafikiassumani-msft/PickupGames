@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR;
 using System.Text.Json.Serialization;
 using Models.Mappers;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,13 +56,18 @@ builder.Services.AddAuthorization(options =>
     //However, not great for checking claims for single endpoints. Users may need this for Minimal
     // Add defaults claims name for jwt
     // Can we reconcile the ClaimsConstants ?
-    //options.AddPolicy("ApiReadOnly", policy => policy.RequireClaim(ClaimConstants.Scope, "api.fullAccess"));
+    //options.AddPolicy("ApiPolicy", policy => policy.RequireClaim(ClaimConstants.Scope, "api:read", "api:create", "api:update", "api:delete"));
+   // options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
 });
 
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Pickup Games API", Version = "v1" });
 });
+
+//builder.Services.AddConvey();
+
+//builder.Services.AddUserServices(); 
 
 var app = builder.Build();
 
@@ -76,7 +82,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-app.UseCors( opts => opts.AllowAnyOrigin()
+app.UseCors(opts => opts.AllowAnyOrigin()
                         .AllowAnyMethod()
                         .AllowAnyHeader());
 
@@ -142,12 +148,12 @@ app.MapPost("/users", [AllowAnonymous] (UserRequestDTO userDto, IUserService use
    return Results.Created($"/users/{registeredUser.UserId}", registeredUser);
 
 })
-  .Accepts<UserDTO>("application/json")
+  .Accepts<UserRequestDTO>("application/json")
   .Produces<UserDTO>(StatusCodes.Status200OK, "application/json")
   .WithTags("Users")
   .WithName("CreateUser");
 
-app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext dbContext) =>
+app.MapPut("/users/{id}", async (int id, UserRequestDTO user, PickupGamesDBContext dbContext) =>
 {
     if (user == null) return Results.BadRequest();
 
@@ -164,7 +170,7 @@ app.MapPut("/users/{id}", async (int id, User user, PickupGamesDBContext dbConte
     return Results.NoContent();
 
 }).RequireAuthorization()
-  .Accepts<UserDTO>("application/json")
+  .Accepts<UserRequestDTO>("application/json")
   .WithTags("Users")
   .WithName("UpdateUser"); ;
 
@@ -190,7 +196,11 @@ app.MapDelete("/users/{id}", async (int id, PickupGamesDBContext dbContext) =>
 //Events
 app.MapGet("/events",  [AllowAnonymous] async (PickupGamesDBContext dbContext) =>
 {
-    var allEvents = await dbContext.Events.Include(ev => ev.User).ToListAsync();
+    var allEvents = await dbContext
+                          .Events
+                          .Include(ev => ev.User)
+                          .Include(e => e.Address)
+                          .ToListAsync();
     var mappedEvents = EventMapper.MapEvents(allEvents);
 
     return Results.Json(mappedEvents);
@@ -247,7 +257,7 @@ app.MapPost("/events", async (EventRequestDTO eventDto, PickupGamesDBContext dbC
   .WithTags("Events")
   .WithName("CreateEvent");
 
-app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext dbContext) =>
+app.MapPut("/events/{id}", async (int id, EventRequestDTO eventDto, PickupGamesDBContext dbContext) =>
 {
     if (eventDto == null) return Results.BadRequest();
 
@@ -257,21 +267,20 @@ app.MapPut("/events/{id}", async (int id, Event eventDto, PickupGamesDBContext d
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
 
-    var eventOwner = await dbContext.FindAsync<User>(eventDto.UserId);
+    var eventOwner = await dbContext.FindAsync<User>(eventDto.OwnerId);
     if (eventOwner == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
 
     eventToUpdate.Title = eventDto.Title;
-    eventToUpdate.Address = eventDto.Address;
+    eventToUpdate.Address = EventMapper.MapAddressRequestDTO(eventDto.Location);
     eventToUpdate.Description = eventDto.Description;
-    eventToUpdate.EventStatus = eventDto.EventStatus;
+    eventToUpdate.EventStatus = (EventStatus) eventDto.EventStatus;
     eventToUpdate.StartDate = eventDto.StartDate;
-    eventToUpdate.EndDate = eventDto.EndDate;
     eventToUpdate.StartTime = eventDto.StartTime;
-    eventToUpdate.EventPrivacy = eventDto.EventPrivacy;
-    eventToUpdate.EventType = eventDto.EventType;
+    eventToUpdate.EventPrivacy = (EventPrivacy) eventDto.EventPrivacy;
+    eventToUpdate.EventType = (EventType) eventDto.EventType;
     eventToUpdate.MaxNumberOfParticipants = eventDto.MaxNumberOfParticipants;
     eventToUpdate.UserId = eventOwner.UserId;
     eventToUpdate.LastUpdatedAt = DateTime.Now;
@@ -306,19 +315,25 @@ app.MapDelete("/events/{id}", async (int id, PickupGamesDBContext dbContext) =>
 
 
 //Participants
-app.MapPost("/participants", async (Participant participant, PickupGamesDBContext dbContext) =>
+app.MapPost("/participants", async (ParticipantRequestDTO participantRequestDTO, PickupGamesDBContext dbContext) =>
 {
-    User? user = await dbContext.Users.FindAsync(participant.UserId);
+    User? user = await dbContext.Users.FindAsync(participantRequestDTO.UserId);
     if (user == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "User not found" });
     }
 
-    Event? existingEvent = await dbContext.Events.FindAsync(participant.EventId);
+    Event? existingEvent = await dbContext.Events.FindAsync(participantRequestDTO.EventId);
     if (existingEvent == null)
     {
         return Results.NotFound(new NotFoundDetails { Message = "Event not found" });
     }
+
+    var participant = new Participant () {
+        User = user,
+        Event = existingEvent,
+        EventId = existingEvent.EventId,
+    };
 
     dbContext.Add<Participant>(participant);
     await dbContext.SaveChangesAsync();
@@ -326,13 +341,13 @@ app.MapPost("/participants", async (Participant participant, PickupGamesDBContex
     return Results.Created($"participants/{participant.ParticipantId}", ParticipantMapper.MapParticipant(participant));
 
 }).RequireAuthorization()
-  .Accepts<ParticipantDTO>("application/json")
+  .Accepts<ParticipantRequestDTO>("application/json")
   .Produces<ParticipantDTO>(StatusCodes.Status200OK, "application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Participants")
   .WithName("GetAllParticipants");
 
-app.MapPut("/participants/{id}", async (int id, Participant participant, PickupGamesDBContext dbContext) =>
+app.MapPut("/participants/{id}", async (int id, ParticipantRequestDTO participant, PickupGamesDBContext dbContext) =>
 {
     if (participant == null) return Results.BadRequest();
 
@@ -352,7 +367,7 @@ app.MapPut("/participants/{id}", async (int id, Participant participant, PickupG
     return Results.NoContent();
 
 }).RequireAuthorization()
-  .Accepts<ParticipantDTO>("application/json")
+  .Accepts<ParticipantRequestDTO>("application/json")
   .Produces<NotFoundDetails>(StatusCodes.Status404NotFound, "application/json")
   .WithTags("Participants")
   .WithName("UpdateParticipant");

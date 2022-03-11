@@ -1,13 +1,25 @@
+#nullable disable
 namespace PickUpGames.Models;
 
 public class Address {
     public int AddressId {get; set;}
-    public string? StreetAddress {get; set;}
-    public string? StreetAddress2 {get; set;}
-    public string? City {get; set;}
-    public string? State {get; set;}
-    public string? PostalCode {get; set;}
-    public string? Country {get; set;}
+    public string StreetAddress {get; set;}
+    public string StreetAddress2 {get; set;}
+    public string City {get; set;}
+    public string State {get; set;}
+    public string PostalCode {get; set;}
+    public string Country {get; set;}
     public int EventId {get; set;}
-    public Event? Event {get; set;}
+    public Event Event {get; set;}
 }
+
+public class AddressRequestDTO {
+    public string StreetAddress {get; set;}
+    public string StreetAddress2 {get; set;}
+    public string City {get; set;}
+    public string State {get; set;}
+    public string PostalCode {get; set;}
+    public string Country {get; set;}
+}
+
+#nullable enable

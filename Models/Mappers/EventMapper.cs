@@ -30,7 +30,7 @@ public static class EventMapper {
             Description = sportEvent.Description,
             StartDate = sportEvent.StartDate,
             StartTime = sportEvent.StartTime,
-            Location = sportEvent.Address,
+            Location = MapAddressToResponseDTO(sportEvent.Address),
             MaxNumberOfParticipants = sportEvent.MaxNumberOfParticipants,
             EventPrivacy = sportEvent.EventPrivacy.ToString(),
             EventStatus = sportEvent.EventStatus.ToString(),
@@ -49,7 +49,7 @@ public static class EventMapper {
             Description = sportEvent.Description,
             StartDate = sportEvent.StartDate,
             StartTime = sportEvent.StartTime,
-            Address = sportEvent.Location,
+            Address = MapAddressRequestDTO(sportEvent.Location),
             MaxNumberOfParticipants = sportEvent.MaxNumberOfParticipants,
             EventPrivacy = (EventPrivacy) sportEvent.EventPrivacy,
             EventStatus = (EventStatus) sportEvent.EventStatus,
@@ -65,7 +65,7 @@ public static class EventMapper {
             Description = sportEvent.Description,
             StartDate = sportEvent.StartDate,
             StartTime = sportEvent.StartTime,
-            Location = sportEvent.Address,
+            Location = MapAddressToResponseDTO(sportEvent.Address),
             MaxNumberOfParticipants = sportEvent.MaxNumberOfParticipants,
             EventPrivacy = sportEvent.EventPrivacy.ToString(),
             EventStatus = sportEvent.EventStatus.ToString(),
@@ -74,6 +74,30 @@ public static class EventMapper {
             Owner = UserMapper.MapUserWithNoEvent(sportEvent.User),
             CreatedAt = sportEvent.CreatedAt,
             LastUpdatedAt = sportEvent.LastUpdatedAt
+        };
+    }
+
+    public static Address MapAddressRequestDTO(AddressRequestDTO addressRequestDTO) {
+
+        return new Address {
+            StreetAddress = addressRequestDTO.StreetAddress,
+            StreetAddress2 = addressRequestDTO.StreetAddress2,
+            City = addressRequestDTO.City,
+            State = addressRequestDTO.State,
+            PostalCode = addressRequestDTO.PostalCode,
+            Country = addressRequestDTO.Country
+        };
+    }
+
+    public static AddressRequestDTO MapAddressToResponseDTO(Address address) {
+
+        return new () {
+            StreetAddress = address.StreetAddress,
+            StreetAddress2 = address.StreetAddress2,
+            City = address.City,
+            State = address.State,
+            PostalCode = address.PostalCode,
+            Country = address.Country
         };
     }
 }

@@ -1,7 +1,5 @@
 ﻿#nullable disable
 
-using System.Text.Json.Serialization;
-
 namespace PickUpGames.Models;
 
 public class Event 
@@ -19,6 +17,7 @@ public class Event
     public EventStatus EventStatus { get; set; }
     public EventType EventType { get; set; }
     public IEnumerable<Participant> Participants { get; set; }
+    public IEnumerable<Comment> Comments {get; set;}
     public int UserId { get; set; }
     public User User { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
@@ -32,7 +31,7 @@ public class EventDTO
     public string Description { get; set; }
     public string StartDate { get; set; }
     public string StartTime { get; set; }
-    public Address Location { get; set; }
+    public AddressRequestDTO Location { get; set; }
     public int MaxNumberOfParticipants { get; set; }
     public string EventPrivacy { get; set; }
     public string EventStatus { get; set; }
@@ -50,13 +49,12 @@ public class EventRequestDTO
     public string Description { get; set; }
     public string StartDate { get; set; }
     public string StartTime { get; set; }
-    public Address Location { get; set; }
+    public AddressRequestDTO Location { get; set; }
     public int MaxNumberOfParticipants { get; set; }
     public int EventPrivacy { get; set; }
     public int EventStatus { get; set; }
     public int EventType { get; set; }
     public int OwnerId { get; set; }
-    public UserRequestDTO user {get; set;}
 }
 
 

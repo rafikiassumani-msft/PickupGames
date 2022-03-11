@@ -10,6 +10,7 @@ public class PickupGamesDBContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Address> Addresses => Set<Address>();
+    public DbSet<Comment> Comments => Set<Comment>();
 
 }
 
